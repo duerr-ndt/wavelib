@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "cwt.h"
-#include "../header/wavelib.h"
 #include "wtmath.h"
 
 wave_object wave_init(const char* wname) {
@@ -3394,6 +3393,7 @@ double* dwt2(wt2_object wt, double *inp) {
 			ostride = 1;
 			cdim = rows_i * cols_i;
 			// Row filtering and column subsampling
+			#pragma omp parallel for
 			for (i = 0; i < ir; ++i) {
 				dwt_per_stride(orig+i*ic, ic, wt->wave->lpd,wt->wave->hpd,lp, lp_dn1+i*cols_i, cols_i, hp_dn1+i*cols_i, istride, ostride);
 			}
@@ -3412,11 +3412,12 @@ double* dwt2(wt2_object wt, double *inp) {
 			istride = ic;
 			ostride = ic;
 			
+			#pragma omp parallel for
 			for (i = 0; i < ic; ++i) {
 				dwt_per_stride(lp_dn1 + i, ir, wt->wave->lpd, wt->wave->hpd, lp, wavecoeff+aLL+i, rows_i, wavecoeff+aLH+i, istride, ostride);
 			}
 
-
+			#pragma omp parallel for
 			for (i = 0; i < ic; ++i) {
 				dwt_per_stride(hp_dn1 + i, ir, wt->wave->lpd, wt->wave->hpd, lp, wavecoeff+aHL+i, rows_i, wavecoeff+aHH+i, istride, ostride);
 			}
@@ -3544,13 +3545,13 @@ void idwt2(wt2_object wt, double *wavecoeff, double *oup) {
 			aHH = wt->coeffaccess[iter*3 + 3];
 			for (i = 0; i < ic; ++i) {
 				idwt_per_stride(orig+i, ir, wavecoeff+aLH+i, wt->wave->lpr, wt->wave->hpr, lf, X_lp,istride,ostride);
-
+				#pragma omp parallel for
 				for (k = lf / 2 - 1; k < 2 * ir + lf / 2 - 1; ++k) {
 					cL[(k - lf / 2 + 1)*ic + i] = X_lp[k];
 				}
 
 				idwt_per_stride(wavecoeff + aHL+i, ir, wavecoeff + aHH+i, wt->wave->lpr, wt->wave->hpr, lf, X_lp, istride, ostride);
-
+				#pragma omp parallel for
 				for (k = lf / 2 - 1; k < 2 * ir + lf / 2 - 1; ++k) {
 					cH[(k - lf / 2 + 1)*ic + i] = X_lp[k];
 				}
@@ -3563,12 +3564,14 @@ void idwt2(wt2_object wt, double *wavecoeff, double *oup) {
 			for (i = 0; i < ir; ++i) {
 				idwt_per_stride(cL+i*ic, ic, cH+i*ic, wt->wave->lpr, wt->wave->hpr, lf, X_lp, istride, ostride);
 
+				#pragma omp parallel for
 				for (k = lf / 2 - 1; k < 2 * ic + lf / 2 - 1; ++k) {
 					out[(k - lf / 2 + 1) + i*ic*2] = X_lp[k];
 				}
 			}
 			ic *= 2;
 			if (iter == J - 1) {
+				#pragma omp parallel for
 				for (i = 0; i < wt->rows; ++i) {
 					for (k = 0; k < wt->cols; ++k) {
 						oup[k + i*wt->cols] = out[k + i*ic];
@@ -3576,6 +3579,7 @@ void idwt2(wt2_object wt, double *wavecoeff, double *oup) {
 				}
 			}
 			else {
+				#pragma omp parallel for
 				for (i = 0; i < wt->dimensions[2 * (iter+1)]; ++i) {
 					for (k = 0; k < wt->dimensions[2 * (iter + 1)+1]; ++k) {
 						oup[k + i*wt->dimensions[2 * (iter + 1) + 1]] = out[k + i*ic];

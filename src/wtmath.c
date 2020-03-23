@@ -192,34 +192,35 @@ void idwt_per_stride(double *cA, int len_cA, double *cD, double *lpr, double *hp
 
 	len_avg = lpr_len;
 	l2 = len_avg / 2;
-	m = -2;
-	n = -1;
 
+#pragma omp parallel for
 	for (i = 0; i < len_cA + l2 - 1; ++i) {
-		m += 2;
-		n += 2;
+		m = i * 2;
+		n = m + 1;
 		ms = m * ostride;
 		ns = n * ostride;
-		X[ms] = 0.0;
-		X[ns] = 0.0;
+		double Xms = 0.0;
+		double Xns = 0.0;
 		for (l = 0; l < l2; ++l) {
 			t = 2 * l;
 			if ((i - l) >= 0 && (i - l) < len_cA) {
 				is = (i - l) * istride;
-				X[ms] += lpr[t] * cA[is] + hpr[t] * cD[is];
-				X[ns] += lpr[t + 1] * cA[is] + hpr[t + 1] * cD[is];
+				Xms += lpr[t] * cA[is] + hpr[t] * cD[is];
+				Xns += lpr[t + 1] * cA[is] + hpr[t + 1] * cD[is];
 			}
 			else if ((i - l) >= len_cA && (i - l) < len_cA + len_avg - 1) {
 				is = (i - l - len_cA) * istride;
-				X[ms] += lpr[t] * cA[is] + hpr[t] * cD[is];
-				X[ns] += lpr[t + 1] * cA[is] + hpr[t + 1] * cD[is];
+				Xms += lpr[t] * cA[is] + hpr[t] * cD[is];
+				Xns += lpr[t + 1] * cA[is] + hpr[t + 1] * cD[is];
 			}
 			else if ((i - l) < 0 && (i - l) > -l2) {
 				is = (len_cA + i - l) * istride;
-				X[ms] += lpr[t] * cA[is] + hpr[t] * cD[is];
-				X[ns] += lpr[t + 1] * cA[is] + hpr[t + 1] * cD[is];
+				Xms += lpr[t] * cA[is] + hpr[t] * cD[is];
+				Xns += lpr[t + 1] * cA[is] + hpr[t + 1] * cD[is];
 			}
 		}
+		X[ms] = Xms;
+		X[ns] = Xns;
 	}
 }
 
