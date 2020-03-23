@@ -23,6 +23,14 @@ option(BUILD_UT "Enable Unit test" ON)
 # cleanup prefix lib for Unix-like OSes
 set(CMAKE_SHARED_MODULE_PREFIX)
 
+# enable OpenMP acceleration
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
 # install target to this folder by default
 set(WAVELIB_BINARY_DIR ${WAVELIB_SRC_ROOT}/bin)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
